@@ -28,7 +28,7 @@ def get_new_images():
     
     # We look for raw images (jpg/png) that aren't webp and aren't in the json
     all_files = [f for f in os.listdir(IMAGES_DIR) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-    new_files = [f for f in all_files if f not in processed and f != 'logo.png']
+    new_files = [f for f in all_files if f not in processed and f != 'logo.png' and not f.startswith('3d_')]
     return new_files
 
 def analyze_locally(filename):
