@@ -16,20 +16,31 @@ document.addEventListener('DOMContentLoaded', () => {
         colorSchemeQuery.addListener(applySystemTheme);
     }
 
-    // 2. Generate ambient animated background blobs
+    // 2. Generate floating 3D bakery items in the background
     const bgContainer = document.getElementById('animated-bg');
+    const floatingAssets = [
+        'images/3d_strawberry_cake.png',
+        'images/3d_chocolate_cookie.png',
+        'images/3d_pastel_cupcake.png',
+        'images/3d_golden_croissant.png'
+    ];
+    const anims = ['float-slow-1', 'float-slow-2', 'float-slow-3'];
 
-    for (let i = 0; i < 16; i++) {
-        const blob = document.createElement('div');
-        blob.className = 'ambient-blob';
+    for (let i = 0; i < 12; i++) {
+        const item = document.createElement('img');
+        item.className = 'floating-item';
+        item.src = floatingAssets[i % floatingAssets.length];
+        item.alt = 'Bakery illustration decoration';
 
-        blob.style.setProperty('--x', `${Math.random() * 100}%`);
-        blob.style.setProperty('--y', `${Math.random() * 100}%`);
-        blob.style.setProperty('--size', `${70 + Math.random() * 180}px`);
-        blob.style.setProperty('--duration', `${10 + Math.random() * 12}s`);
-        blob.style.setProperty('--delay', `-${Math.random() * 12}s`);
+        item.style.setProperty('--x', `${Math.random() * 100}%`);
+        item.style.setProperty('--y', `${Math.random() * 100}%`);
+        item.style.setProperty('--size', `${50 + Math.random() * 80}px`);
 
-        bgContainer.appendChild(blob);
+        const randomAnim = anims[Math.floor(Math.random() * anims.length)];
+        item.style.animation = `${randomAnim} ${15 + Math.random() * 20}s ease-in-out infinite`;
+        item.style.animationDelay = `-${Math.random() * 20}s`;
+
+        bgContainer.appendChild(item);
     }
 
     const images = [
@@ -403,10 +414,35 @@ document.addEventListener('DOMContentLoaded', () => {
             item.setAttribute('role', 'button');
             item.setAttribute('aria-label', `Open details for ${note.title}`);
             
+            // Random slight rotation for Polaroid effect
+            const randomRotation = (Math.random() * 6 - 3).toFixed(1);
+            item.style.setProperty('--rotation', `${randomRotation}deg`);
+            
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'polaroid-img-wrap';
+
             const img = document.createElement('img');
             img.loading = 'lazy';
             img.src = `images/${encodeURIComponent(imgSrc)}`;
             img.alt = note.title;
+
+            imgWrap.appendChild(img);
+            item.appendChild(imgWrap);
+
+            const caption = document.createElement('div');
+            caption.className = 'polaroid-caption';
+
+            const title = document.createElement('span');
+            title.className = 'polaroid-title';
+            title.textContent = note.title;
+
+            const tag = document.createElement('span');
+            tag.className = 'polaroid-tag';
+            tag.textContent = note.category;
+
+            caption.appendChild(title);
+            caption.appendChild(tag);
+            item.appendChild(caption);
 
             item.addEventListener('click', () => {
                 openPostcard({
@@ -433,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            item.appendChild(img);
             galleryContainer.appendChild(item);
         });
     };
@@ -491,5 +526,255 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }, 100);
+
+    // 5. Interactive 3D Shaded Chocolate Cake in Hero (Three.js)
+    const initWireframeCake = () => {
+        const canvas = document.getElementById('wireframe-cake');
+        if (!canvas || typeof THREE === 'undefined') return;
+
+        const container = canvas.parentElement;
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+        camera.position.set(0, 1.3, 4.5);
+        camera.lookAt(0, 0.2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Add soft lighting to shade the 3D surfaces
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.DirectionalLight(0xffffff, 0.75);
+        mainLight.position.set(3, 5, 4);
+        scene.add(mainLight);
+
+        // Soft brand coral rim light for delicious warm glow
+        const rimLight = new THREE.DirectionalLight(0xfa6e6d, 0.35);
+        rimLight.position.set(-3, 2, -3);
+        scene.add(rimLight);
+
+        // Brand color utility from CSS variables
+        const getBrandColors = () => {
+            const style = getComputedStyle(document.documentElement);
+            const blueStr = style.getPropertyValue('--brand-blue').trim() || '#0e4693';
+            const coralStr = style.getPropertyValue('--brand-coral').trim() || '#fa6e6d';
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            return {
+                blue: new THREE.Color(blueStr),
+                coral: new THREE.Color(coralStr),
+                plate: new THREE.Color(isDark ? '#0c2d5f' : '#f5edd8')
+            };
+        };
+
+        const currentColors = getBrandColors();
+
+        // 3D Shaded Materials (Phong Material for specular reflections)
+        const chocolateMaterial = new THREE.MeshPhongMaterial({
+            color: 0x482816, // Rich chocolate sponge
+            specular: 0x1a0f0a,
+            shininess: 6,
+            flatShading: true
+        });
+
+        const creamMaterial = new THREE.MeshPhongMaterial({
+            color: 0xffdbdb, // Soft vanilla-strawberry cream layer
+            specular: 0x221111,
+            shininess: 12
+        });
+
+        const frostingMaterial = new THREE.MeshPhongMaterial({
+            color: currentColors.coral, // Brand coral dripping frosting
+            specular: 0x664444,
+            shininess: 85
+        });
+
+        const plateMaterial = new THREE.MeshPhongMaterial({
+            color: currentColors.plate, // Ceramic light cream or brand blue
+            specular: 0x888888,
+            shininess: 100
+        });
+
+        const cherryMaterial = new THREE.MeshPhongMaterial({
+            color: 0xd62828, // Deep red glossy cherry
+            specular: 0xbbbbbb,
+            shininess: 120
+        });
+
+        const stemMaterial = new THREE.MeshPhongMaterial({
+            color: 0x4d372c,
+            specular: 0x050505,
+            shininess: 2
+        });
+
+        const particleMaterial = new THREE.PointsMaterial({
+            color: currentColors.coral,
+            size: 0.04,
+            transparent: true,
+            opacity: 0.7
+        });
+
+        // Dynamic updates on theme changes
+        const themeObserver = new MutationObserver(() => {
+            const updated = getBrandColors();
+            frostingMaterial.color.copy(updated.coral);
+            plateMaterial.color.copy(updated.plate);
+            particleMaterial.color.copy(updated.coral);
+        });
+        themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+        // Cake Assembly Group
+        const cakeGroup = new THREE.Group();
+
+        // 1. Ceramic Plate (Full cylinder)
+        const plateGeo = new THREE.CylinderGeometry(1.8, 1.8, 0.08, 32);
+        const plate = new THREE.Mesh(plateGeo, plateMaterial);
+        plate.position.y = -0.4;
+        cakeGroup.add(plate);
+
+        // Helper to draw a circle sector shape for the main cake and the slice
+        const getCakeShape = (radius, startAngle, endAngle) => {
+            const shape = new THREE.Shape();
+            shape.moveTo(0, 0);
+            shape.absarc(0, 0, radius, startAngle, endAngle, false);
+            shape.lineTo(0, 0);
+            return shape;
+        };
+
+        // Helper to create a whole cake tier (perfectly aligned cylinders)
+        const createWholeTier = (radius, height, yOffset) => {
+            const tierGroup = new THREE.Group();
+
+            const spongeHeight = height * 0.9;
+            const frostingHeight = height * 0.1;
+
+            // 1. Sponge Base Cylinder
+            const spongeGeo = new THREE.CylinderGeometry(radius, radius, spongeHeight, 48);
+            spongeGeo.translate(0, spongeHeight / 2, 0); // Bottom is at y = 0
+            const spongeMesh = new THREE.Mesh(spongeGeo, chocolateMaterial);
+            spongeMesh.position.y = 0;
+            tierGroup.add(spongeMesh);
+
+            // 2. Cream Frosting Top Glaze Cylinder
+            const frostingGeo = new THREE.CylinderGeometry(radius, radius, frostingHeight, 48);
+            frostingGeo.translate(0, frostingHeight / 2, 0); // Bottom is at y = 0
+            const frostingMesh = new THREE.Mesh(frostingGeo, frostingMaterial);
+            frostingMesh.position.y = spongeHeight;
+            tierGroup.add(frostingMesh);
+
+            // Add cream dollops in a perfect circle along the top rim
+            const dollopCount = 18;
+            const dollopGeo = new THREE.SphereGeometry(0.045, 8, 8);
+            const topY = spongeHeight + frostingHeight;
+            for (let i = 0; i < dollopCount; i++) {
+                const angle = (i / dollopCount) * Math.PI * 2;
+                const dollop = new THREE.Mesh(dollopGeo, creamMaterial); // Vanilla cream dollops for contrast
+                dollop.position.set(
+                    Math.cos(angle) * (radius - 0.08),
+                    topY + 0.02,
+                    Math.sin(angle) * (radius - 0.08)
+                );
+                const s = 0.85 + Math.random() * 0.3;
+                dollop.scale.set(s, s, s);
+                tierGroup.add(dollop);
+            }
+
+            tierGroup.position.y = yOffset;
+            return tierGroup;
+        };
+
+        // 2. Whole Cake Assembly (Single Tier Cylinder)
+        const mainCake = createWholeTier(1.3, 0.75, -0.4);
+        cakeGroup.add(mainCake);
+
+        // 3. Glazed Cherry topping on center of the cake
+        const cherryGroup = new THREE.Group();
+        const cherryGeo = new THREE.SphereGeometry(0.14, 12, 12);
+        const cherry = new THREE.Mesh(cherryGeo, cherryMaterial);
+        cherry.position.set(0, 0.35 + 0.08, 0); // Sitting on top of the tier at center
+        cherryGroup.add(cherry);
+
+        // Curving cherry stem
+        const stemCurve = new THREE.QuadraticBezierCurve3(
+            new THREE.Vector3(0, 0.35 + 0.22, 0),
+            new THREE.Vector3(0.12, 0.6, 0),
+            new THREE.Vector3(0.04, 0.7, -0.06)
+        );
+        const stemPoints = stemCurve.getPoints(8);
+        const stemGeo = new THREE.BufferGeometry().setFromPoints(stemPoints);
+        const stemMaterialLine = new THREE.LineBasicMaterial({ color: 0x4d372c, linewidth: 2 });
+        const stem = new THREE.Line(stemGeo, stemMaterialLine);
+        cherryGroup.add(stem);
+
+        // Position cherry exactly at the center of the top surface
+        cherryGroup.position.set(0, 0, 0);
+        cakeGroup.add(cherryGroup);
+
+
+
+        // 6. Floating Sugar Sparkles (Orbiting particle system)
+        const particleCount = 50;
+        const particlesGeo = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+
+        for (let i = 0; i < particleCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const radius = 1.6 + Math.random() * 0.8;
+            const y = -0.4 + Math.random() * 1.8;
+            
+            positions[i * 3] = Math.cos(angle) * radius;
+            positions[i * 3 + 1] = y;
+            positions[i * 3 + 2] = Math.sin(angle) * radius;
+        }
+        particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const particles = new THREE.Points(particlesGeo, particleMaterial);
+        cakeGroup.add(particles);
+
+        scene.add(cakeGroup);
+
+        // Interactive mouse-tilt tracking
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetX = 0;
+        let targetY = 0;
+
+        window.addEventListener('mousemove', (event) => {
+            mouseX = (event.clientX / window.innerWidth) * 2 - 1;
+            mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        const clock = new THREE.Clock();
+        const animate = () => {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // Smooth interpolation (lerping) for mouse follow
+            targetX += (mouseX - targetX) * 0.05;
+            targetY += (mouseY - targetY) * 0.05;
+
+            // Slow idle spin & tilt
+            cakeGroup.rotation.y = time * 0.15;
+            cakeGroup.position.y = Math.sin(time * 0.7) * 0.08;
+            
+            // Apply mouse tilt forces
+            cakeGroup.rotation.x = Math.sin(time * 0.35) * 0.04 - targetY * 0.18;
+            cakeGroup.rotation.z = Math.cos(time * 0.35) * 0.04 + targetX * 0.18;
+
+            // Spin sparkles in opposite direction
+            particles.rotation.y = -time * 0.08;
+
+            renderer.render(scene, camera);
+        };
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+    };
+    initWireframeCake();
 
 });
