@@ -57,39 +57,45 @@ def batch_process():
     processed_count = 0
 
     for cake in cakes:
-        old_filename = cake['fileName']
+        filename = cake['fileName']
+        base_name = os.path.splitext(filename)[0]
+        target_filename = f"{base_name}.webp"
         
-        # SKIP if already enhanced (WebP is our target format)
-        if old_filename.lower().endswith('.webp'):
+        target_path = os.path.join(IMAGES_DIR, target_filename)
+
+        # 1. If WebP already exists, we're good
+        if os.path.exists(target_path):
+            cake['fileName'] = target_filename
             updated_cakes.append(cake)
             continue
-
-        base_name = os.path.splitext(old_filename)[0]
-        new_filename = f"{base_name}.webp"
-        
-        input_path = os.path.join(IMAGES_DIR, old_filename)
-        output_path = os.path.join(IMAGES_DIR, new_filename)
-
-        if os.path.exists(input_path):
-            print(f"Enhancing: {old_filename} -> {new_filename}")
-            if enhance_image(input_path, output_path):
-                cake['fileName'] = new_filename
-                processed_count += 1
-                # Remove old file if it's different to keep repo size small
-                if old_filename != new_filename:
+            
+        # 2. Try to find a source file with various extensions
+        source_found = False
+        for ext in ['.jpg', '.jpeg', '.png', '.JPG', '.PNG', '.JPEG']:
+            source_path = os.path.join(IMAGES_DIR, f"{base_name}{ext}")
+            if os.path.exists(source_path):
+                print(f"Enhancing: {source_path} -> {target_path}")
+                if enhance_image(source_path, target_path):
+                    cake['fileName'] = target_filename
+                    processed_count += 1
+                    # Clean up source to save space
                     try:
-                        os.remove(input_path)
-                        print(f"Removed original: {old_filename}")
+                        os.remove(source_path)
+                        print(f"Removed source: {source_path}")
                     except Exception as e:
-                        print(f"Could not remove {old_filename}: {e}")
-        else:
-            print(f"Warning: File {input_path} not found. Skipping enhancement.")
+                        print(f"Could not remove {source_path}: {e}")
+                source_found = True
+                break
+        
+        if not source_found:
+            print(f"Warning: Could not find source image for {filename}. Removing from metadata.")
+            continue # Skip adding this cake to updated_cakes
         
         updated_cakes.append(cake)
 
     # Save updated metadata
-    with open(METADATA_FILE, 'w') as f:
-        json.dump(updated_cakes, f, indent=2)
+    with open(METADATA_FILE, 'w', encoding='utf-8') as f:
+        json.dump(updated_cakes, f, indent=2, ensure_ascii=False)
 
     print(f"\nSuccessfully enhanced {processed_count} images and updated {METADATA_FILE}.")
 
