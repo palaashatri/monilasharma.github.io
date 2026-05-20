@@ -19,7 +19,7 @@ def get_processed_files():
 def get_new_images():
     processed = get_processed_files()
     all_files = [f for f in os.listdir(IMAGES_DIR) if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
-    new_files = [f for f in all_files if f not in processed and f != LOGO_FILE]
+    new_files = [f for f in all_files if f not in processed and f != LOGO_FILE and not f.startswith('3d_')]
     return new_files
 
 def analyze_and_rename(new_files):
